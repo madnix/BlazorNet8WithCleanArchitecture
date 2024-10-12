@@ -1,0 +1,24 @@
+﻿################################################################################
+# 이 .gitignore 파일은 Microsoft(R) Visual Studio에서 자동으로 만들어졌습니다.
+################################################################################
+
+/.idea
+/.vs
+/API/bin/Debug/net8.0
+/API/obj
+*.user
+/Application/bin/Debug/net8.0
+/Application/obj/Debug/net8.0
+/Application/obj
+/Domain/bin/Debug/net8.0
+/Domain/obj/Debug/net8.0
+/Domain/obj
+/obj/Docker
+/Dockerfile
+/WebUI/bin/Debug/net8.0
+/WebUI/obj/Debug/net8.0
+/WebUI/obj
+/Infrastructure/bin/Debug/net8.0
+/Infrastructure/obj/Debug/net8.0
+/Infrastructure/obj
+/docker-compose.override.yml
