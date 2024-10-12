@@ -5,8 +5,8 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["Presentation/WebUI/WebUI.csproj", "WebUI/"]
-COPY ["Presentation/API/API.csproj", "API/"]
+COPY ["WebUI/WebUI.csproj", "WebUI/"]
+COPY ["API/API.csproj", "API/"]
 COPY ["Application/Application.csproj", "Application/"]
 COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
