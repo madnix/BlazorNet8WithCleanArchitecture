@@ -1,0 +1,119 @@
+﻿@page "/administration/account/identity/users"
+@using System.Security.Claims
+@using Application.DTOs.Response.Account
+@using Microsoft.AspNetCore.Authorization
+@using NetcodeHub.Packages.Components.DataGrid
+@attribute [Authorize(Roles = Constant.Role.Admin)]
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12">
+        <div class="card border-1 shadow-lg">
+            <div class="card-header fw-bold text-info fs-2">Available Users</div>
+            <div class="card-body">
+                @if (Users is not null)
+                {
+                    <NetcodeHubDataGrid HeaderColor="color: Dark;"
+                                        HeaderFont="font-family: Times New Roman"
+                                        HeaderSize="font-size: x-large"
+                                        ContentFont="font-family: Cambria"
+                                        DataGridFormat="StripedSuccessColumns"
+                                        CustomStyle="padding: 10px">
+                        <HeaderTemplate>
+                            <th>USER NAME</th>
+                            <th>USER EMAIL</th>
+                            <th>CHANGE ROLE</th>
+                        </HeaderTemplate>
+                        <ContentTemplate>
+                            @foreach (var user in Users)
+                            {
+                                <tr>
+                                    <td>@user.Name</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        @if (DefaultRoles is not null)
+                                        {
+                                            var roleName = user.RoleName;
+                                            //var selectedRole = string.Empty;
+                                            <select class="form-select" @onchange="HandleSelectionChange">
+                                                <option selected="selected" value="@roleName"> @roleName </option>
+                                                @foreach (var role in DefaultRoles)
+                                                {
+                                                    //selectedRole = role.Name;
+                                                    if (role.Name != roleName)
+                                                    {
+                                                        <option value="@($"{role.Name}_{user.Email}")"> @role.Name</option>
+                                                    }
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <em>Loading roles...</em>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </ContentTemplate>
+                    </NetcodeHubDataGrid>
+                }
+                else
+                {
+                    <em class="text-success text-center fw-bold shadow-lg border-1">Loading data...</em>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<NetcodeHubToast @ref="ToastService" IconClass="bi bi-check" Persist="true" Duration="2000" />
+@code {
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private IEnumerable<GetUsersWithRolesResponseDto>? Users { get; set; }
+    private IEnumerable<GetRoleDto>? DefaultRoles { get; set; }
+    private ClaimsPrincipal? User { get; set; } = new();
+
+    private async Task GetUsersWithRoles()
+    {
+        var data = (await AccountService.GetUsersWithRolesAsync() ?? Array.Empty<GetUsersWithRolesResponseDto>()).ToList();
+        data.Remove(data.FirstOrDefault(u => u.Email == User?.Identity?.Name)!);
+        Users = data;
+    }
+
+    private async Task GetDefaultRoles()
+        => DefaultRoles = await AccountService.GetRolesAsync();
+
+    private async Task GetAdminInfo()
+    {
+        if (AuthState != null) User = (await AuthState).User;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await GetAdminInfo();
+            await GetUsersWithRoles();
+            await GetDefaultRoles();
+        }
+        catch
+        {
+            // ignored
+        }
+    }
+    
+    private async Task HandleSelectionChange(ChangeEventArgs args)
+    {
+        var roleName = args.Value?.ToString()?.Split("_")[0];
+        var email = args.Value?.ToString()?.Split("_")[1];
+        var result = await AccountService.ChangeUserRoleAsync(new ChangeUserRoleRequestDto(email!, roleName!));
+
+        if (result is { Flag: true })
+        {
+            if (result.Message != null)
+                await ToastService.ShowSuccessToast("Info!", result.Message);
+            else if (result.Message != null) 
+                await ToastService.ShowErrorToast("Alert!", result.Message);
+        }
+
+    }
+}

@@ -1,0 +1,11 @@
+﻿@page "/account/identity/logout"
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(new LocalStorageDto());
+        
+        NavManager.NavigateTo(uri: "account/identity/login", true);
+    }
+}

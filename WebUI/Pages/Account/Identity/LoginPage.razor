@@ -1,0 +1,134 @@
+﻿@page "/account/identity/login"
+@layout AuthenticationLayout
+<EditForm Model="LoginModel" OnValidSubmit="LoginAsync">
+    <div class="card border-primary shadow-lg text-dark p-5" style="opacity: 0.8; margin-top: 10%; margin-right: 30%; margin-left: 30%; min-width: 250px; border-radius: 24px">
+        <div class="card-header text-dark fs-4 border-primary">Login</div>
+        <div class="card-body" style="opacity: 1">
+            <DataAnnotationsValidator />
+            <FloatingText @bind-Value="LoginModel.EmailAddress" class="form-control mb-3" Label="Email Address" Placeholder="madnix2033@gmail.com" />
+            <FloatingText @bind-Value="LoginModel.Password" class="form-control" Label="User Password" Type="@_passwordType" />
+            <a class="btn btn-link text-decoration-none float-end" @onclick="ChangePasswordType" style="margin-top: -20px"><small>@_displayText</small></a>
+            <div class="form-control align-content-end">
+                <button class="float-end btn btn-success mt-4 w-50" style="position: absolute; right: 0; margin: 10%" type="submit">Login</button>
+            </div>
+            
+            <hr class="text-primary"/>
+        </div>
+        
+        <div class="card-footer mt-5">
+            <ValidationSummary class="form-control text-danger text-decoration-none p-4" style="list-style: lower-latin; text-align: left" />
+        </div>
+    </div>
+</EditForm>
+
+<NetcodeHubModal @bind-Open="IsOpen" Actions="ButtonActions" BootstrapClass="@_borderClass" CustomStyle="min-width: 250px; max-width: 300px">
+    <ContentTemplate>
+        <span class="text-center text-muted">
+            <div class="card border-@_borderClass">
+                <div class="card-header">Information</div>
+                <div class="card-body text-muted"> @_message</div>
+            </div>
+        </span>
+    </ContentTemplate>
+    
+    <ButtonTemplate>
+        <div class="d-flex justify-content-center align-content-center">
+            <button class="@_buttonClass btn-sm" value="ok" style="margin-right: 5px">Okay</button>
+        </div>
+    </ButtonTemplate>
+</NetcodeHubModal>
+
+@code {
+    public bool IsOpen { get; set; }
+    public string? SelectedAction { get; set; }
+    public LoginDto LoginModel { get; } = new();
+    private string? _message;
+    private string? _borderClass = "border-success rounded p-2 ml-2 mr-2";
+    private string? _buttonClass = "btn btn-success";
+
+    private async Task LoginAsync()
+    {
+        try
+        {
+            ResetButtons();
+            var response = await AccountService.LoginAccountAsync(LoginModel);
+
+            if (response is { Flag: true })
+            {
+                var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+                await customAuthStateProvider.UpdateAuthenticationState(new LocalStorageDto()
+                {
+                    Token = response.Token,
+                    Refresh = response.RefreshToken
+                });
+                
+                NavManager.NavigateTo(uri: "content/home", true);
+            }
+            else
+            {
+                DangerBorderAndButton();
+                _message = response?.Message;
+                IsOpen = true;
+            }
+        }
+        catch
+        {
+            DangerBorderAndButton();
+            _message = "Sorry, unknown error occured";
+            IsOpen = true;
+        }
+    }
+
+    private string? _passwordType = "password";
+    private bool _passwordState = true;
+    private string _displayText = "Show";
+
+    private void ChangePasswordType()
+    {
+        _passwordState = !_passwordState;
+        if (!_passwordState)
+        {
+            _passwordType = "text";
+            _displayText = "Hide";
+        }
+        else
+        {
+            _passwordType = "password";
+            _displayText = "Show";
+        }
+    }
+
+    [CascadingParameter] public Task<AuthenticationState>? ClientAuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if ((await ClientAuthState!).User.Identity is { IsAuthenticated: true })
+                NavManager.NavigateTo(uri: "content/home", false, true);
+        }
+        catch
+        {
+            //ignore
+        }
+    }
+
+    private void DangerBorderAndButton()
+    {
+        _borderClass = "border-danger rounded p-2 ml-2 mr-2";
+        _buttonClass = "btn btn-danger";
+    }
+
+    private void ResetButtons()
+    {
+        _borderClass = "border-success rounded p-2 ml-2 mr-2";
+        _buttonClass = "btn btn-success";
+    }
+
+    private void ButtonActions(string action)
+    {
+        SelectedAction = action;
+        if (action == "ok")
+            IsOpen = false;
+    }
+}
